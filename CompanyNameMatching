@@ -1,0 +1,530 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "9f54aedd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas\n",
+    "import csv\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "005a5f66",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rows2 = []\n",
+    "with open('./US public digital_CB Insights.csv', 'r', encoding='utf-8') as f:\n",
+    "    reader = csv.DictReader(f)\n",
+    "    for row in reader:\n",
+    "        rows2.append(row)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "c9672c85",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rows = []\n",
+    "with open('./IPO list_Ritter.csv', 'r') as f:\n",
+    "    reader = csv.DictReader(f)\n",
+    "    for row in reader:\n",
+    "        rows.append(row)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "5c4dc23c",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'CXApp'"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "rows2[0]['Companies']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "4757c604",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'ROYSTER'"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "rows[0]['IPO name']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "145f9650",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def samelength(str1, str2):\n",
+    "    #calculate the string similarity using difflib\n",
+    "    same = 0\n",
+    "    l = min(len(str1), len(str2))\n",
+    "\n",
+    "    for i in range(l):\n",
+    "        if (str1[i] != str2[i]):\n",
+    "            return i\n",
+    "    return i+1\n",
+    "\n",
+    "def findmatch(j):\n",
+    "    company = rows2[j]['Companies']\n",
+    "    maxmatch = 0\n",
+    "    ind = -1\n",
+    "    for i in range(len(rows)):\n",
+    "        ccompany  = rows[i]['IPO name']\n",
+    "        if type(ccompany) != str:\n",
+    "            continue\n",
+    "        matchlen = samelength(company.lower(), ccompany.lower())\n",
+    "#         matchratio =  / max(len(company), len(ccompany))\n",
+    "        if matchlen > maxmatch and matchlen >= len(company) * 0.4:\n",
+    "            maxmatch = matchlen\n",
+    "            ind = i\n",
+    "        \n",
+    "    return maxmatch, ind\n",
+    "\n",
+    "def findmatch_norepeat(j, repeat):\n",
+    "    company = rows2[j]['Companies']\n",
+    "    maxmatch = 0\n",
+    "    ind = -1\n",
+    "    for i in range(len(rows)):\n",
+    "        ccompany  = rows[i]['IPO name']\n",
+    "        if type(ccompany) != str:\n",
+    "            continue\n",
+    "        matchlen = samelength(company.lower(), ccompany.lower())\n",
+    "#         matchratio =  / max(len(company), len(ccompany))\n",
+    "        if matchlen >= maxmatch and i not in repeat and matchlen >= len(company) * 0.4:\n",
+    "            maxmatch = matchlen\n",
+    "            ind = i\n",
+    "#     repeat.add(ind)\n",
+    "    if (ind == -1):\n",
+    "        print(j, company)\n",
+    "    return maxmatch, ind"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "e2fdef08",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "396 Lattice Incorporated\n",
+      "149 Socket Communications (SCKT)\n",
+      "234 CrowdGather\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "278"
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "c = 0\n",
+    "repeat = set()\n",
+    "to2 = {}\n",
+    "to1 = {}\n",
+    "for j in range(len(rows2)):\n",
+    "    lens, ind = findmatch(j)\n",
+    "    if (ind == -1):\n",
+    "        c += 1\n",
+    "    if ind != -1 and ind in repeat:\n",
+    "        beforej = to2[ind]\n",
+    "        beforelens, _ = findmatch(beforej)\n",
+    "        if beforelens > lens:\n",
+    "            lens, ind2 = findmatch_norepeat(j, repeat)\n",
+    "            to1[j] = ind2\n",
+    "            to2[ind2] = j\n",
+    "            repeat.add(ind2)\n",
+    "        else:\n",
+    "            to2[ind] = j\n",
+    "            to1[j] = ind\n",
+    "            lens, ind2 = findmatch_norepeat(beforej, repeat)\n",
+    "            to2[ind2] = beforej\n",
+    "            to1[beforej] = ind2\n",
+    "            repeat.add(ind2)\n",
+    "    else:\n",
+    "        to1[j] = ind\n",
+    "        repeat.add(ind)\n",
+    "        to2[ind] = j\n",
+    "c"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "9ade7f92",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "278"
+      ]
+     },
+     "execution_count": 13,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "c"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "4d0ee890",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1256"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "len(to1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "a2b1a923",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['Companies',\n",
+       " 'Description',\n",
+       " 'URL',\n",
+       " 'Company Status',\n",
+       " 'Founded Year',\n",
+       " 'Sector',\n",
+       " 'Industry',\n",
+       " 'Sub-Industry',\n",
+       " 'State',\n",
+       " 'Exit Round',\n",
+       " 'Exit Date',\n",
+       " 'Acquirers']"
+      ]
+     },
+     "execution_count": 12,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "list(rows2[0].keys())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "6e4e388e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "empty = {}\n",
+    "for k in rows[0].keys():\n",
+    "    empty[k] = 'NAN'\n",
+    "with open('./US-IPO.csv', 'w', encoding='utf-8') as f:\n",
+    "    header = list(rows2[0].keys()) + list(rows[0].keys())\n",
+    "    writer = csv.DictWriter(f, fieldnames=header)\n",
+    "    writer.writeheader()\n",
+    "    \n",
+    "    for i,j in to1.items():\n",
+    "        row2 = rows2[i].copy()\n",
+    "        if (j != -1):\n",
+    "            row1 = rows[j].copy()\n",
+    "            row2.update(row1)\n",
+    "        else:\n",
+    "            row2.update(empty)\n",
+    "        writer.writerow(row2)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6c6c7a57",
+   "metadata": {},
+   "source": [
+    "# IPO"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "0dd59bf5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas\n",
+    "import csv\n",
+    "import numpy as np\n",
+    "\n",
+    "rows = []\n",
+    "with open('./IPO list_Ritter.csv', 'r') as f:\n",
+    "    reader = csv.DictReader(f)\n",
+    "    for row in reader:\n",
+    "        rows.append(row)\n",
+    "rows2 = []\n",
+    "with open('./Digital sample.csv', 'r', encoding='utf-8') as f:\n",
+    "    reader = csv.DictReader(f)\n",
+    "    for row in reader:\n",
+    "        rows2.append(row)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "a909845b",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'1911'"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "rows2[0]['yearfounded']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "0d872c2b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def samelength(str1, str2):\n",
+    "    #calculate the string similarity using difflib\n",
+    "    same = 0\n",
+    "    l = min(len(str1), len(str2))\n",
+    "    if (l == 0):\n",
+    "        return 0\n",
+    "    for n in range(l):\n",
+    "        if (str1[n] != str2[n]):\n",
+    "            return n\n",
+    "    return n+1\n",
+    "\n",
+    "def findmatch(j):\n",
+    "    keys = [\"companyname\", \"companyformername\",\"companyalsoknownas\",\"companylegalname\"]\n",
+    "    \n",
+    "    maxmatch = 0\n",
+    "    ind = -1\n",
+    "    for k in keys:\n",
+    "        company = rows2[j][k]\n",
+    "        for i in range(len(rows)):\n",
+    "            ccompany  = rows[i]['IPO name']\n",
+    "            if type(ccompany) != str:\n",
+    "                continue\n",
+    "            if (int(rows2[j]['yearfounded']) > int(rows[i][\"Offer date\"][:4])):\n",
+    "                continue\n",
+    "            matchlen = samelength(company.lower(), ccompany.lower())\n",
+    "    #         matchratio =  / max(len(company), len(ccompany))\n",
+    "            if matchlen > maxmatch and matchlen >= len(company) * 0.4:\n",
+    "                maxmatch = matchlen\n",
+    "                ind = i\n",
+    "\n",
+    "    return maxmatch, ind\n",
+    "\n",
+    "def findmatch_norepeat(j, repeat):\n",
+    "    keys = [\"companyname\", \"companyformername\",\"companyalsoknownas\",\"companylegalname\"]\n",
+    "    \n",
+    "    maxmatch = 0\n",
+    "    ind = -1\n",
+    "    for k in keys:\n",
+    "        company = rows2[j][k]\n",
+    "        for i in range(len(rows)):\n",
+    "            ccompany  = rows[i]['IPO name']\n",
+    "            if type(ccompany) != str:\n",
+    "                continue\n",
+    "            if (int(rows2[j]['yearfounded']) > int(rows[i][\"Offer date\"][:4])):\n",
+    "                continue\n",
+    "            matchlen = samelength(company.lower(), ccompany.lower())\n",
+    "    #         matchratio =  / max(len(company), len(ccompany))\n",
+    "            if matchlen > maxmatch and matchlen >= len(company) * 0.4 and (i not in repeat):\n",
+    "                maxmatch = matchlen\n",
+    "                ind = i\n",
+    "\n",
+    "    return maxmatch, ind"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "508e2fa4",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "169"
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "c = 0\n",
+    "repeat = set()\n",
+    "to2 = {}\n",
+    "to1 = {}\n",
+    "for j in range(len(rows2)):\n",
+    "    lens, ind = findmatch(j)\n",
+    "    if (ind == -1):\n",
+    "        c += 1\n",
+    "    if ind != -1 and ind in repeat:\n",
+    "        beforej = to2[ind]\n",
+    "        beforelens, _ = findmatch(beforej)\n",
+    "        if beforelens > lens:\n",
+    "            lens, ind2 = findmatch_norepeat(j, repeat)\n",
+    "            to1[j] = ind2\n",
+    "            to2[ind2] = j\n",
+    "            repeat.add(ind2)\n",
+    "        else:\n",
+    "            to2[ind] = j\n",
+    "            to1[j] = ind\n",
+    "            lens, ind2 = findmatch_norepeat(beforej, repeat)\n",
+    "            to2[ind2] = beforej\n",
+    "            to1[beforej] = ind2\n",
+    "            repeat.add(ind2)\n",
+    "    else:\n",
+    "        to1[j] = ind\n",
+    "        repeat.add(ind)\n",
+    "        to2[ind] = j\n",
+    "c"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "cf61f1d4",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1249"
+      ]
+     },
+     "execution_count": 14,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "len(rows2)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "72c2d865",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "empty = {}\n",
+    "for k in rows[0].keys():\n",
+    "    empty[k] = 'NAN'\n",
+    "with open('./Digital-IPO.csv', 'w', encoding='utf-8') as f:\n",
+    "    header = list(rows2[0].keys()) + list(rows[0].keys())\n",
+    "    writer = csv.DictWriter(f, fieldnames=header)\n",
+    "    writer.writeheader()\n",
+    "    \n",
+    "    for i,j in to1.items():\n",
+    "        row2 = rows2[i].copy()\n",
+    "        if (j != -1):\n",
+    "            row1 = rows[j].copy()\n",
+    "            row2.update(row1)\n",
+    "        else:\n",
+    "            row2.update(empty)\n",
+    "        writer.writerow(row2)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f133d59f",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.8"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
